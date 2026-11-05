@@ -3,12 +3,12 @@
   Agenda (ou remove) a execucao automatica do script de ponto no Agendador de Tarefas do Windows.
 
 .EXAMPLE
-  # Agenda 4 batidas de segunda a sexta
-  .\agendar_ponto.ps1 -Script "C:\Users\victor\ferramentas\ponto\ponto.py" -Horarios 08:00,12:00,13:00,17:00
+  # Agenda 4 batidas de segunda a sexta (roda ponto_agendado.py desta pasta)
+  .\agendar_ponto.ps1 -Horarios 08:00,12:00,13:00,17:00
 
 .EXAMPLE
   # Com ate 3 minutos de variacao aleatoria em cada batida
-  .\agendar_ponto.ps1 -Script "C:\Users\victor\ferramentas\ponto\ponto.py" -Horarios 08:00,17:00 -VariacaoMinutos 3
+  .\agendar_ponto.ps1 -Horarios 08:00,17:00 -VariacaoMinutos 3
 
 .EXAMPLE
   # Lista as batidas agendadas
@@ -20,8 +20,8 @@
 #>
 [CmdletBinding(DefaultParameterSetName = 'Agendar')]
 param(
-    [Parameter(ParameterSetName = 'Agendar', Mandatory)]
-    [string]$Script,
+    [Parameter(ParameterSetName = 'Agendar')]
+    [string]$Script = (Join-Path $PSScriptRoot 'ponto_agendado.py'),
 
     [Parameter(ParameterSetName = 'Agendar', Mandatory)]
     [string[]]$Horarios,
@@ -84,12 +84,12 @@ switch ([IO.Path]::GetExtension($Script).ToLower()) {
 $argumentos = "/c echo ===== %DATE% %TIME% >> `"$Log`" & $comando >> `"$Log`" 2>&1"
 $acao = New-ScheduledTaskAction -Execute 'cmd.exe' -Argument $argumentos -WorkingDirectory $PastaScript
 
+# Sem WakeToRun/StartWhenAvailable de proposito: se o PC estava dormindo ou
+# desligado no horario, voce nao estava trabalhando, e bater depois daria hora errada.
 $config = New-ScheduledTaskSettingsSet `
-    -StartWhenAvailable `
-    -WakeToRun `
     -AllowStartIfOnBatteries `
     -DontStopIfGoingOnBatteries `
-    -ExecutionTimeLimit (New-TimeSpan -Minutes 10) `
+    -ExecutionTimeLimit (New-TimeSpan -Minutes 15) `
     -MultipleInstances IgnoreNew
 
 # Roda na sessao do usuario logado (necessario se o script abre navegador/janela)
